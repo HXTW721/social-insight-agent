@@ -8,7 +8,12 @@ VISION_PROMPT = "这是一张关于「{topic}」的社媒帖子配图。请用�
 def analyze_visual(platform: str, topic: str, top_n: int = 3) -> str:
     mc = PLATFORM_MAP.get(platform, platform)
     adapter = MediaCrawlerAdapter()
-    posts = adapter._read_contents(mc, "", settings.raw_dir, image_only=(platform == "xhs"))
+    # 数据在运行目录隔离体系下：取该平台最近一次成功采集的目录
+    from src.tools.mediacrawler_adapter import STORE_DIR_MAP
+    run_dir = adapter.latest_run(STORE_DIR_MAP.get(mc, mc)) or adapter.latest_run(mc)
+    if run_dir is None:
+        return ""
+    posts = adapter._read_contents(mc, "", run_dir, image_only=(platform == "xhs"))
     posts_with_img = [p for p in posts if p.image_urls]
     posts_with_img.sort(key=lambda p: p.like_count, reverse=True)
     top = posts_with_img[:top_n]
